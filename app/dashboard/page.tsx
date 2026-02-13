@@ -4,7 +4,6 @@ import useSWR from "swr"
 import {
   ShoppingCart,
   DollarSign,
-  Clock,
   CheckCircle2,
   AlertTriangle,
   TrendingUp,
@@ -51,15 +50,6 @@ export default function DashboardPage() {
       icon: DollarSign,
       color: "text-success",
       bg: "bg-success/10",
-    },
-    {
-      label: "Pendientes",
-      value:
-        Number(data.today.pending_count) +
-        Number(data.today.preparing_count),
-      icon: Clock,
-      color: "text-amber-600",
-      bg: "bg-amber-50",
     },
     {
       label: "Entregados",
