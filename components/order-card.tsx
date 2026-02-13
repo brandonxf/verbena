@@ -8,6 +8,7 @@ import {
   XCircle,
   MapPin,
   Store,
+  Trash2,
 } from "lucide-react"
 import { formatCOP, type Order } from "@/lib/types"
 
@@ -50,12 +51,12 @@ const statusConfig: Record<
 
 export function OrderCard({
   order,
-  onUpdateStatus,
   onViewDetails,
+  onDelete,
 }: {
   order: Order
-  onUpdateStatus: (id: number, status: string) => void
   onViewDetails?: (order: Order) => void
+  onDelete?: (id: number) => void
 }) {
   const config = statusConfig[order.status]
   const StatusIcon = config.icon
@@ -111,26 +112,15 @@ export function OrderCard({
         </p>
 
         <div className="flex gap-2">
-          {config.next && (
+          {onDelete && (
             <button
               onClick={(e) => {
                 e.stopPropagation()
-                onUpdateStatus(order.id, config.next!)
-              }}
-              className="rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-            >
-              {config.nextLabel}
-            </button>
-          )}
-          {order.status === "pendiente" && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation()
-                onUpdateStatus(order.id, "cancelado")
+                onDelete(order.id)
               }}
               className="rounded-lg bg-destructive/10 px-3 py-1.5 text-xs font-medium text-destructive transition-colors hover:bg-destructive/20"
             >
-              Cancelar
+              <Trash2 className="h-4 w-4" />
             </button>
           )}
         </div>

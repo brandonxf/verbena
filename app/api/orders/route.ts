@@ -128,10 +128,10 @@ export async function POST(request: NextRequest) {
 
     const total = subtotal + (delivery_fee || 0)
 
-    // Create order
+    // Create order with status "listo"
     const orderResult = await sql`
-      INSERT INTO orders (order_number, customer_name, customer_phone, delivery_type, delivery_fee, payment_method, sold_by, subtotal, total, notes)
-      VALUES (${orderNum}, ${customer_name || null}, ${customer_phone || null}, ${delivery_type || "local"}, ${delivery_fee || 0}, ${payment_method || "efectivo"}, ${sold_by || "leonardo"}, ${subtotal}, ${total}, ${notes || null})
+      INSERT INTO orders (order_number, customer_name, customer_phone, delivery_type, delivery_fee, payment_method, sold_by, subtotal, total, status, notes)
+      VALUES (${orderNum}, ${customer_name || null}, ${customer_phone || null}, ${delivery_type || "local"}, ${delivery_fee || 0}, ${payment_method || "efectivo"}, ${sold_by || "leonardo"}, ${subtotal}, ${total}, 'listo', ${notes || null})
       RETURNING *
     `
 

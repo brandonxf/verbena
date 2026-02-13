@@ -8,9 +8,22 @@ export async function GET(request: NextRequest) {
     const date = searchParams.get("date") || new Date().toISOString().split("T")[0]
 
     if (type === "sales_by_person") {
-      // Ventas por personas (vendedores)
+      // Ventas por personas (vendedores) con desglose por método de pago
       try {
         const salesByPerson = await sql`
+          SELECT 
+            COALESCE(sold_by, 'Sin asignar') as person,
+            COALESCE(payment_method, 'efectivo') as payment_method,
+            COUNT(*) as orders_count,
+            COALESCE(SUM(total), 0) as total_sales
+          FROM orders
+          WHERE DATE(created_at) = ${date} AND status != 'cancelado'
+          GROUP BY COALESCE(sold_by, 'Sin asignar'), COALESCE(payment_method, 'efectivo')
+          ORDER BY person, payment_method
+        `
+        
+        // Procesar datos para obtener también totales por persona
+        const salesByPersonTotal = await sql`
           SELECT 
             COALESCE(sold_by, 'Sin asignar') as person,
             COUNT(*) as total_orders,
@@ -21,10 +34,14 @@ export async function GET(request: NextRequest) {
           GROUP BY COALESCE(sold_by, 'Sin asignar')
           ORDER BY total_sales DESC
         `
-        return NextResponse.json(salesByPerson)
+        
+        return NextResponse.json({
+          byPaymentMethod: salesByPerson,
+          totals: salesByPersonTotal
+        })
       } catch (error) {
         console.error("Error fetching sales by person:", error)
-        return NextResponse.json([])
+        return NextResponse.json({ byPaymentMethod: [], totals: [] })
       }
     }
 

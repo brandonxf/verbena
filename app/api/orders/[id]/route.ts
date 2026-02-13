@@ -68,3 +68,45 @@ export async function PATCH(
     )
   }
 }
+export async function DELETE(
+  _request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params
+    
+    // Delete order items toppings first
+    await sql`
+      DELETE FROM order_item_toppings
+      WHERE order_item_id IN (
+        SELECT id FROM order_items WHERE order_id = ${parseInt(id)}
+      )
+    `
+
+    // Delete order items
+    await sql`
+      DELETE FROM order_items WHERE order_id = ${parseInt(id)}
+    `
+
+    // Delete order
+    const result = await sql`
+      DELETE FROM orders WHERE id = ${parseInt(id)}
+      RETURNING id
+    `
+
+    if (result.length === 0) {
+      return NextResponse.json(
+        { error: "Pedido no encontrado" },
+        { status: 404 }
+      )
+    }
+
+    return NextResponse.json({ success: true })
+  } catch (error) {
+    console.error("Error deleting order:", error)
+    return NextResponse.json(
+      { error: "Error al eliminar pedido" },
+      { status: 500 }
+    )
+  }
+}

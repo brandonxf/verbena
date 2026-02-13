@@ -75,54 +75,115 @@ export default function ReportesPage() {
         <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
           <div className="mb-6 flex items-center gap-2">
             <Users className="h-5 w-5 text-primary" />
-            <h2 className="text-lg font-bold text-foreground">Ventas por Personas</h2>
+            <h2 className="text-lg font-bold text-foreground">Ventas por Personas (Desglose por Método de Pago)</h2>
           </div>
 
-          {salesByPerson && salesByPerson.length > 0 ? (
-            <div className="space-y-4">
-              {/* Tabla */}
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-border">
-                      <th className="px-4 py-3 text-left font-medium text-muted-foreground">Vendedor</th>
-                      <th className="px-4 py-3 text-center font-medium text-muted-foreground">Pedidos</th>
-                      <th className="px-4 py-3 text-right font-medium text-muted-foreground">Total</th>
-                      <th className="px-4 py-3 text-right font-medium text-muted-foreground">Ticket Promedio</th>
-                      <th className="px-4 py-3 text-right font-medium text-muted-foreground">% de Ventas</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {salesByPerson.map((person, i) => {
-                      const percentage = totalRevenue > 0 ? (Number(person.total_sales) / totalRevenue) * 100 : 0
-                      return (
-                        <tr key={i} className="border-b border-border hover:bg-secondary/20">
-                          <td className="px-4 py-3 font-medium text-foreground capitalize">
-                            {person.person}
-                          </td>
-                          <td className="px-4 py-3 text-center text-foreground">
-                            {person.total_orders}
-                          </td>
-                          <td className="px-4 py-3 text-right font-semibold text-primary">
-                            {formatCOP(Number(person.total_sales))}
-                          </td>
-                          <td className="px-4 py-3 text-right text-foreground">
-                            {formatCOP(Number(person.average_order))}
-                          </td>
-                          <td className="px-4 py-3 text-right text-foreground">
-                            {percentage.toFixed(1)}%
-                          </td>
-                        </tr>
-                      )
-                    })}
-                  </tbody>
-                </table>
+          {salesByPerson && Array.isArray(salesByPerson.totals) && salesByPerson.totals.length > 0 ? (
+            <div className="space-y-6">
+              {/* Tabla principal de totales */}
+              <div>
+                <h3 className="mb-3 text-sm font-semibold text-muted-foreground">Resumen por Vendedor</h3>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-border">
+                        <th className="px-4 py-3 text-left font-medium text-muted-foreground">Vendedor</th>
+                        <th className="px-4 py-3 text-center font-medium text-muted-foreground">Total Pedidos</th>
+                        <th className="px-4 py-3 text-right font-medium text-muted-foreground">Total Ventas</th>
+                        <th className="px-4 py-3 text-right font-medium text-muted-foreground">Ticket Promedio</th>
+                        <th className="px-4 py-3 text-right font-medium text-muted-foreground">% del Total</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {salesByPerson.totals.map((person: any, i: number) => {
+                        const percentage = totalRevenue > 0 ? (Number(person.total_sales) / totalRevenue) * 100 : 0
+                        return (
+                          <tr key={i} className="border-b border-border hover:bg-secondary/20">
+                            <td className="px-4 py-3 font-medium text-foreground capitalize">
+                              {person.person}
+                            </td>
+                            <td className="px-4 py-3 text-center text-foreground">
+                              {person.total_orders}
+                            </td>
+                            <td className="px-4 py-3 text-right font-semibold text-primary">
+                              {formatCOP(Number(person.total_sales))}
+                            </td>
+                            <td className="px-4 py-3 text-right text-foreground">
+                              {formatCOP(Number(person.average_order))}
+                            </td>
+                            <td className="px-4 py-3 text-right text-foreground">
+                              {percentage.toFixed(1)}%
+                            </td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Desglose por método de pago */}
+              <div>
+                <h3 className="mb-3 text-sm font-semibold text-muted-foreground">Desglose por Método de Pago</h3>
+                <div className="space-y-4">
+                  {salesByPerson.totals.map((person: any, i: number) => {
+                    const personPayments = salesByPerson.byPaymentMethod.filter(
+                      (p: any) => p.person === person.person
+                    )
+                    const efectivo = personPayments.find((p: any) => p.payment_method === 'efectivo')
+                    const transferencia = personPayments.find((p: any) => p.payment_method === 'transferencia')
+
+                    return (
+                      <div
+                        key={i}
+                        className="rounded-lg border border-border bg-background p-4"
+                      >
+                        <div className="mb-3 font-semibold text-foreground capitalize">
+                          {person.person}
+                        </div>
+                        <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
+                          {/* Efectivo - Pedidos */}
+                          <div className="rounded-lg bg-secondary/10 p-3 text-center">
+                            <p className="text-xs text-muted-foreground">💵 Efectivo (Pedidos)</p>
+                            <p className="text-lg font-bold text-foreground">
+                              {efectivo?.orders_count || 0}
+                            </p>
+                          </div>
+
+                          {/* Efectivo - Ventas */}
+                          <div className="rounded-lg bg-secondary/10 p-3 text-center">
+                            <p className="text-xs text-muted-foreground">💵 Efectivo (Ventas)</p>
+                            <p className="text-lg font-bold text-primary">
+                              {formatCOP(Number(efectivo?.total_sales || 0))}
+                            </p>
+                          </div>
+
+                          {/* Transferencia - Pedidos */}
+                          <div className="rounded-lg bg-secondary/10 p-3 text-center">
+                            <p className="text-xs text-muted-foreground">🏦 Transferencia (Pedidos)</p>
+                            <p className="text-lg font-bold text-foreground">
+                              {transferencia?.orders_count || 0}
+                            </p>
+                          </div>
+
+                          {/* Transferencia - Ventas */}
+                          <div className="rounded-lg bg-secondary/10 p-3 text-center">
+                            <p className="text-xs text-muted-foreground">🏦 Transferencia (Ventas)</p>
+                            <p className="text-lg font-bold text-primary">
+                              {formatCOP(Number(transferencia?.total_sales || 0))}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
               </div>
 
               {/* Gráfico */}
               <div className="mt-6 h-80">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={salesByPerson}>
+                  <BarChart data={salesByPerson.totals}>
                     <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
                     <XAxis dataKey="person" className="text-xs" />
                     <YAxis className="text-xs" />

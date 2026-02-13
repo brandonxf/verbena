@@ -5,12 +5,8 @@ import { useState } from "react"
 import Link from "next/link"
 import {
   Plus,
-  Clock,
-  ChefHat,
-  CheckCircle2,
   Truck,
-  XCircle,
-  RefreshCw,
+  Trash2,
 } from "lucide-react"
 import { formatCOP, type Order } from "@/lib/types"
 import { toast } from "sonner"
@@ -19,39 +15,14 @@ import { OrderDetailsModal } from "@/components/order-details-modal"
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json())
 
-const statusFilters = [
-  { value: "todos", label: "Todos", icon: RefreshCw },
-  { value: "pendiente", label: "Pendiente", icon: Clock },
-  { value: "preparando", label: "Preparando", icon: ChefHat },
-  { value: "listo", label: "Listo", icon: CheckCircle2 },
-  { value: "entregado", label: "Entregado", icon: Truck },
-  { value: "cancelado", label: "Cancelado", icon: XCircle },
-]
-
 export default function PedidosPage() {
-  const [filter, setFilter] = useState("todos")
   const [selectedOrder, setSelectedOrder] = useState<(Order & { items?: any[] }) | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const { data: orders, mutate } = useSWR<Order[]>(
-    `/api/orders${filter !== "todos" ? `?status=${filter}` : ""}`,
+    `/api/orders`,
     fetcher,
     { refreshInterval: 5000 }
   )
-
-  async function updateStatus(id: number, status: string) {
-    try {
-      const res = await fetch(`/api/orders/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status }),
-      })
-      if (!res.ok) throw new Error()
-      toast.success(`Pedido actualizado a "${status}"`)
-      mutate()
-    } catch {
-      toast.error("Error al actualizar pedido")
-    }
-  }
 
   async function handleViewDetails(order: Order) {
     try {
@@ -65,8 +36,23 @@ export default function PedidosPage() {
     }
   }
 
-  const activeOrders = orders?.filter((o) => o.status !== "entregado" && o.status !== "cancelado") || []
-  const completedOrders = orders?.filter((o) => o.status === "entregado" || o.status === "cancelado") || []
+  async function deleteOrder(id: number) {
+    if (!confirm("¿Estás seguro de que deseas eliminar este pedido?")) return
+
+    try {
+      const res = await fetch(`/api/orders/${id}`, {
+        method: "DELETE",
+      })
+      if (!res.ok) throw new Error()
+      toast.success("Pedido eliminado correctamente")
+      mutate()
+    } catch {
+      toast.error("Error al eliminar pedido")
+    }
+  }
+
+  const listoOrders = orders?.filter((o) => o.status === "listo") || []
+  const entregadoOrders = orders?.filter((o) => o.status === "entregado") || []
 
   const todayTotal = orders
     ?.filter((o) => o.status !== "cancelado")
@@ -91,74 +77,54 @@ export default function PedidosPage() {
         </Link>
       </div>
 
-      {/* Status filters */}
-      <div className="mb-6 flex gap-2 overflow-x-auto pb-2">
-        {statusFilters.map((sf) => (
-          <button
-            key={sf.value}
-            onClick={() => setFilter(sf.value)}
-            className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-medium transition-colors ${
-              filter === sf.value
-                ? "bg-primary text-primary-foreground"
-                : "bg-card text-muted-foreground hover:bg-secondary"
-            }`}
-          >
-            <sf.icon className="h-3.5 w-3.5" />
-            {sf.label}
-          </button>
-        ))}
-      </div>
-
-      {/* Active orders */}
-      {filter === "todos" && activeOrders.length > 0 && (
+      {/* Pedidos Listos */}
+      {listoOrders.length > 0 && (
         <div className="mb-8">
           <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-            Activos ({activeOrders.length})
+            Listos ({listoOrders.length})
           </h2>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {activeOrders.map((order) => (
+            {listoOrders.map((order) => (
               <OrderCard
                 key={order.id}
                 order={order}
-                onUpdateStatus={updateStatus}
                 onViewDetails={handleViewDetails}
+                onDelete={deleteOrder}
               />
             ))}
           </div>
         </div>
       )}
 
-      {/* All/completed orders */}
-      <div>
-        {filter === "todos" && completedOrders.length > 0 && (
+      {/* Pedidos Entregados */}
+      {entregadoOrders.length > 0 && (
+        <div>
           <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-            Completados ({completedOrders.length})
+            Entregados ({entregadoOrders.length})
           </h2>
-        )}
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {(filter === "todos" ? completedOrders : orders || []).map(
-            (order) => (
-              <OrderCard
-                key={order.id}
-                order={order}
-                onUpdateStatus={updateStatus}
-                onViewDetails={handleViewDetails}
-              />
-            )
-          )}
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {entregadoOrders.map(
+              (order) => (
+                <OrderCard
+                  key={order.id}
+                  order={order}
+                  onViewDetails={handleViewDetails}
+                  onDelete={deleteOrder}
+                />
+              )
+            )}
+          </div>
         </div>
-      </div>
+      )}
 
       {orders && orders.length === 0 && (
         <div className="flex flex-col items-center justify-center py-16 text-center">
-          <Clock className="mb-3 h-12 w-12 text-muted-foreground/40" />
+          <Truck className="mb-3 h-12 w-12 text-muted-foreground/40" />
           <h3 className="text-lg font-medium text-foreground">
             No hay pedidos
           </h3>
           <p className="text-sm text-muted-foreground">
-            {filter !== "todos"
-              ? "No hay pedidos con este estado"
-              : "Aun no hay pedidos hoy. Crea uno nuevo."}
+            Aun no hay pedidos hoy. Crea uno nuevo.
           </p>
         </div>
       )}
